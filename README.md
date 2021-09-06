@@ -24,6 +24,15 @@ must be supplied to the `ggtree` function.
 Each row in this dataframe corresponds to a single signature in a single cluster. The percentages of rows corresponding to a single cluster should sum to 100.
 
 
+# Install
+
+```
+library(devtools)
+install_github('alexcoulton/ggtreesignatures')
+```
+
+
+
 
 
 ggtree: an R package for visualization of phylogenetic trees with their annotation data
