@@ -51,7 +51,7 @@ geom_tree <- function(mapping=NULL, data=NULL, layout="rectangular", multiPhylo=
 stat_tree <- function(mapping=NULL, data=NULL, geom="segment", position="identity",
                       layout="rectangular", multiPhylo=FALSE, lineend="round", MAX_COUNT=5,
                       ..., arrow=NULL, rootnode=TRUE, show.legend=NA, inherit.aes=TRUE,
-                      na.rm=TRUE, check.param=TRUE, continuous="none") {
+                      na.rm=TRUE, check.param=TRUE, continuous="none", signature.df=NULL) {
 
     default_aes <- aes_(x=~x, y=~y,node=~node, parent=~parent)
     if (multiPhylo) {
@@ -140,6 +140,43 @@ stat_tree <- function(mapping=NULL, data=NULL, geom="segment", position="identit
                           ...),
               check.aes=FALSE
               )
+    } else if (layout == 'signatures'){
+        list(             
+             layer(data=data,
+                   mapping=mapping,
+                   stat=StatTreeVertical,
+                   geom = geom,
+                   position=position,
+                   show.legend = show.legend,
+                   inherit.aes = inherit.aes,
+                   params=list(layout = layout,
+                               lineend = lineend,
+                               na.rm = na.rm,
+                               ## arrow = arrow,
+                               rootnode = rootnode,
+                               continuous = continuous,
+                               ...),
+                   check.aes = FALSE
+                   ),
+             layer(data=data,
+                   mapping=mapping,
+                   stat=StatTreeMutationalSignatures,
+                   geom = "rect", ## GeomTreeHorizontal,
+                   position=position,
+                   show.legend = show.legend,
+                   inherit.aes = inherit.aes,
+                   params=list(layout = layout,
+                               lineend = lineend,
+                               na.rm = na.rm,
+                               #arrow = arrow,
+                               rootnode = rootnode,
+                               continuous = continuous,
+                               signature.df = signature.df,
+                               ...),
+                   #extra_params = signature.df,
+                   check.aes = FALSE
+                   )
+             )
     }
 }
 
@@ -289,6 +326,125 @@ StatTreeVertical <- ggproto("StatTreeVertical", Stat,
                             )
 
 
+StatTreeMutationalSignatures <- ggproto("StatTreeMutationalSignatures", Stat,
+                              required_aes = c("node", "parent", "x", "y"),
+                              compute_group = function(data, params) {
+                                data
+                              },
+                              compute_panel = function(self, data, scales, params, layout, lineend,
+                                                       continuous = "none", rootnode = TRUE, 
+                                                       nsplit = 100, extend=0.002, signature.df ) {
+                                  .fun <- function(data) {
+                                      df <- setup_tree_data(data)
+                                      x <- df$x
+                                      y <- df$y
+                                      df$xend <- x
+                                      df$yend <- y
+                                      ii <- with(df, match(parent, node))
+                                      df$x <- x[ii]
+
+                                      if (!rootnode) {
+                                          ## introduce this paramete in v=1.7.4
+                                          ## rootnode = TRUE which behave as previous versions.
+                                          ## and has advantage of the number of line segments is consistent with tree nodes.
+                                          ## i.e. every node has its own line segment, even for root.
+                                          ## if rootnode = FALSE, the root to itself line segment will be removed.
+
+                                          df <- dplyr::filter(df, .data$node != tidytree:::rootnode.tbl_tree(df)$node)
+                                      }
+                                      if (continuous != "none") {
+                                          # using ggnewscale new_scale("color") for multiple color scales
+                                          if (length(grep("colour_new", names(df)))==1 && !"colour" %in% names(df)){
+                                              names(df)[grep("colour_new", names(df))] <- "colour"
+                                          }
+                                          if (!is.null(df$colour)){
+                                              if (any(is.na(df$colour))){
+                                                  df$colour[is.na(df$colour)] <- 0
+                                              }
+                                              df$col2 <- df$colour
+                                              df$col <- df$col2[ii]
+                                          }
+                                          # using ggnewscale new_scale("size") for multiple size scales
+                                          if (length(grep("size_new", names(df)))==1 && !"size" %in% names(df)){
+                                              names(df)[grep("size_new", names(df))] <- "size"
+                                          }
+                                          if (!is.null(df$size)){
+                                              if (any(is.na(df$size))){
+                                                  df$size[is.na(df$size)] <- 0
+                                              }
+                                              df$size2 <- df$size
+                                              df$size1 <- df$size2[ii]
+                                          }
+                                          setup_data_continuous_color_size_tree(df, nsplit = nsplit, extend = extend, continuous = continuous)
+                                      } else {
+                                          return(df)
+                                      }
+                                  }
+                                  if ('.id' %in% names(data)) {
+                                      ldf <- split(data, data$.id)
+                                      df <- do.call(rbind, lapply(ldf, .fun))
+                                  } else {
+                                      df <- .fun(data)
+                                  }
+                                  # using ggnewscale new_scale for multiple color or size scales
+                                  if (length(grep("colour_new", names(data)))==1 && continuous != "none"){
+                                      names(df)[match("colour", names(df))] <- names(data)[grep("colour_new", names(data))] 
+                                  }
+                                  if (length(grep("size_new", names(data)))==1 && continuous != "none"){
+                                      names(df)[match("size", names(df))] <- names(data)[grep("size_new", names(data))]
+                                  }
+
+                                  df$xmin = df$x
+                                  df$xmax = df$xend
+                                  yscale1 = max(df$y) / 50
+
+
+                                  df$ymin = df$y - yscale1
+                                  df$ymax = df$y + yscale1 
+
+
+                                  signature.df = signature.df[signature.df$node %in% df$label, ]
+
+
+                                  df$label
+                                  signature.df$node
+
+                                  signature.df$node = factor(signature.df$node, levels = unique(df$label))
+                                  signature.df = signature.df[order(signature.df$node), ]
+
+                                  df.tmp = df[!is.na(df$label), ]
+
+                                  sig.split = split(signature.df, signature.df$node)
+                                  df.split = split(df.tmp, df.tmp$node)
+
+                                  sig.split = sig.split[1:length(df.split)]
+
+                                  count1 = 1 
+                                  newdf.split = Map(function(x, y){
+                                      barlength = x$xmax - x$xmin
+                                      new.bar.lengths = (barlength / 100) * y$percentage
+
+                                      new.xmax = x$xmin + cumsum(new.bar.lengths)
+                                      new.xmin = c(x$xmin, new.xmax[-length(new.xmax)])
+
+                                      newdf1 = x[-1, ]
+                                      for(i in 1:nrow(y)){
+                                          newdf1 = bind_rows(newdf1, x)
+                                      }
+
+                                      newdf1$xmin = new.xmin
+                                      newdf1$xmax = new.xmax
+                                      newdf1$group = y$signature
+                                      newdf1$fill = factor(newdf1$group, levels = y$signature)
+                                      count1 <<- count1 + 1
+                                      newdf1
+                                  }, df.split, sig.split)
+
+                                  df.new = bind_rows(newdf.split)
+                                  df = df.new
+                                  return(df)
+                              }
+                              )
 
 StatTree <- ggproto("StatTree", Stat,
                     required_aes = c("node", "parent", "x", "y"),

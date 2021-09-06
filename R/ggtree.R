@@ -53,12 +53,13 @@ ggtree <- function(tr,
                    branch.length  = "branch.length",
                    root.position  = 0,
                    xlim = NULL,
+                   signature.df = NULL,
                    ...) {
 
     # Check if layout string is valid.
     layout %<>% match.arg(c("rectangular", "slanted", "fan", "circular", 'inward_circular',
                             "radial", "unrooted", "equal_angle", "daylight", "dendrogram",
-                            "ape", "ellipse", "roundrect"))
+                            "ape", "ellipse", "roundrect", "signatures"))
 
     if (layout == "unrooted") {
         layout <- "daylight"
@@ -95,8 +96,24 @@ ggtree <- function(tr,
         multiPhylo <- FALSE
     }
 
-    p <- p + geom_tree(layout=layout, multiPhylo=multiPhylo, ...)
+    if(layout == 'signatures'){
+        signature.df$signature = as.character(signature.df$signature)
+        p$data$m.sig = signature.df$signature[[1]]
+           # factor(rep(signature.df$signature[[1]], nrow(p$data), levels = c(unique(signature.df$signature))))
 
+
+
+        #signature.df = signature.df[signature.df$node %in% p$data$label, ]
+
+        p <- p +
+        geom_tree(layout=layout, multiPhylo=multiPhylo,
+            aes(fill = as.factor(m.sig), label = label),
+            signature.df = signature.df,
+            ...) 
+
+    } else {
+        p <- p + geom_tree(layout=layout, multiPhylo=multiPhylo, ...)
+    }
 
     p <- p + theme_tree()
 
