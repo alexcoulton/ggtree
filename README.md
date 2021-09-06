@@ -2,14 +2,27 @@
 
 # ggtreesignatures
 
-Modified version of ggtree to allow plotting of of phylogenetic trees that incorporate mutational signature information, like so:
+Modified version of ggtree to allow plotting of of phylogenetic trees that incorporate mutational signature information.
+
+<!--
+![example tree](img/example_tree.png)
+
+The proportion of each cluster of mutations that is caused by a particular mutational signature is indicated by the proportion of the edge that 
+is occupied by a particular colour. In the example, we can see that the first internal node is 
+-->
 
 
-[![example tree](img/example_tree.png)]
+This package adds a new option to the layout argument of the ggtree function: `signatures`. If the `signatures` layout is used, an additional argument, `signature.df`,
+must be supplied to the `ggtree` function.
 
+`signature.df` accepts a data frame with 3 columns:
+    `node` - character vector, cluster names matching the names of clusters given in the Newick tree
+    `signature` - character vector, name of mutational signature
+    `percentage` - numeric vector, the percentage of the cluster caused by a particular mutational signature
+    
+    
+Each row in this dataframe corresponds to a single signature in a single cluster. The percentages of rows corresponding to a single cluster should sum to 100.
 
-
-This package adds a new option to the layout argument of the ggtree function: "signatures".
 
 
 
