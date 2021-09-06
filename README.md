@@ -16,9 +16,9 @@ This package adds a new option to the layout argument of the ggtree function: `s
 must be supplied to the `ggtree` function.
 
 `signature.df` accepts a data frame with 3 columns:
-    `node` - character vector, cluster names matching the names of clusters given in the Newick tree
-    `signature` - character vector, name of mutational signature
-    `percentage` - numeric vector, the percentage of the cluster caused by a particular mutational signature
+- `node`: character vector, cluster names matching the names of clusters given in the Newick tree
+- `signature`: character vector, name of mutational signature
+- `percentage`: numeric vector, the percentage of the cluster caused by a particular mutational signature
     
     
 Each row in this dataframe corresponds to a single signature in a single cluster. The percentages of rows corresponding to a single cluster should sum to 100.
