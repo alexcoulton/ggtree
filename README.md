@@ -1,5 +1,10 @@
 <!-- README.md is generated from README.Rmd. Please edit that file -->
 
+# ggtreesignatures
+
+Modified version of ggtree to allow plotting of mutational signatures. This package adds a new option to the layout argument of the ggtree function: "signatures".
+
+
 ggtree: an R package for visualization of phylogenetic trees with their annotation data
 =======================================================================================
 
