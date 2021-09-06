@@ -5,7 +5,7 @@
 Modified version of ggtree to allow plotting of of phylogenetic trees that incorporate mutational signature information, like so:
 
 
-[example tree](img/example_tree.png)
+[![example tree](img/example_tree.png)]
 
 
 
